@@ -61,33 +61,24 @@ class Block {
 	 * @param WP_Block $block      The instance of this block.
 	 * @return string The markup of the block.
 	 */
-	public function render_callback( $attributes, $content, $block ) {
+	public function render_callback( $attributes, $content, $block )
+	{
 		$post_types = get_post_types( [ 'public' => true ] );
 		$class_name = $attributes['className'];
-		ob_start();
+		// ob_start();
+		$block_markup = sprintf('<div class="%1$s"><h2>%2$s</h2>', $class_name, __('Post Counts', 'sitecounts') );
 
-		?>
-		<div class="<?php echo $class_name; ?>">
-			<h2>Post Counts</h2>
-			<?php
-			foreach ( $post_types as $post_type_slug ) :
-				$post_type_object = get_post_type_object( $post_type_slug );
-				$post_count = count(
-					get_posts(
-						[
-							'post_type' => $post_type_slug,
-							'posts_per_page' => -1,
-						]
-					)
-				);
+		array_walk( $post_types, function($v, $k) use (&$block_markup) {
+			$post_type_object = get_post_type_object( $v );
+			$post_type_labels = get_post_type_labels( $post_type_object );
+			$post_type_count = wp_count_posts( $post_type_labels->name );
 
-				?>
-				<p><?php echo 'There are ' . $post_count . ' ' . $post_type_object->labels->name . '.'; ?></p>
-			<?php endforeach; ?>
-			<p><?php echo 'The current post ID is ' . $_GET['post_id'] . '.'; ?></p>
-		</div>
-		<?php
+			$block_markup .= sprintf('<p>%1$s %2$d %3$s.</p>', _n('There is', 'There are', $post_type_count, 'sitecounts'), $post_type_count, $post_type_labels->name );
+		});
 
-		return ob_get_clean();
+		$block_markup .=  sprintf('<p>The current post ID is %s.</p>', sanitize_text_field( $_GET['post_id'] ) );
+
+		//return ob_get_clean();
+		return $block_markup;
 	}
 }
